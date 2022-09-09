@@ -216,6 +216,24 @@ public:
 
 #define	DEFINED_METHOD_POINTER(res_type, class_type, define_name, ...) typedef res_type(class_type::* define_name)(__VA_ARGS__);
 
+#define	REFRECT_PRIVATE_METHOD(res_type, class_type, method_name,define_name, ...) \
+	public:\
+		typedef res_type(class_type::* define_name)(__VA_ARGS__);\
+		static define_name GetMethodPointer_##method_name(){\
+			return &class_type::method_name;\
+		}\
+	private:\
+
+#define	REFRECT_PROTECTED_METHOD(res_type, class_type, method_name,define_name, ...) \
+	public:\
+		typedef res_type(class_type::* define_name)(__VA_ARGS__);\
+		static define_name GetMethodPointer_##method_name(){\
+			return &class_type::method_name;\
+		}\
+	protected:\
+
+#define	DEFINED_METHOD_POINTER(res_type, class_type, define_name, ...) typedef res_type(class_type::* define_name)(__VA_ARGS__);
+
 
 #define REGISTER_CLASS(class_type,class_name)\
 		Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance);
@@ -228,6 +246,9 @@ public:
 
 #define REGISTER_METHOD_WITHOUT_RES(class_type, class_name, method_pointer, method_name, ...)\
 	DerivedMethodWithoutRes<class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);
+
+#define REGISTER_NON_PUBLIC_METHOD_WITHOUT_RES(class_type, class_name, method_pointer, method_name, ...)\
+	DerivedMethodWithoutRes<class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, class_type::GetMethodPointer_##method_name());
 
 #define REGISTER_METHOD_WITH_RES(res_type,class_type, class_name, method_pointer, method_name, ...)\
 	DerivedMethodWithRes<res_type,class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##res_type_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);

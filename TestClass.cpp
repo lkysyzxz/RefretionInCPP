@@ -10,4 +10,6 @@ REGISTER_NON_PUBLIC_FIELD(TestScript, test_script, int, m_protected);
 
 REGISTER_METHOD_WITH_RES(int, TestScript, test_script, PTestFunc, TestFunc, int, int, int)
 REGISTER_METHOD_WITHOUT_RES(TestScript, test_script, PSay, Say, std::string, double)
-REGISTER_METHOD_WITH_RES(double, TestScript, test_script, PFloatAddIntToDouble, FloatAddIntToDouble, double,int)
+REGISTER_METHOD_WITH_RES(double, TestScript, test_script, PFloatAddIntToDouble, FloatAddIntToDouble, double, int)
+REGISTER_NON_PUBLIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestPrivateMethod, TestPrivateMethod)
+REGISTER_NON_PUBLIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestProtectedMethod, TestProtectedMethod)

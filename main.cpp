@@ -32,6 +32,11 @@ int main() {
 	int m_protected = *(int*)protectedFieldInfo->GetValueAddress(pins);
 	std::string str = *(std::string*)strFieldInfo->GetValueAddress(pins);
 
+	PMethodInfo privateMethod = type->GetMethodInfo("TestPrivateMethod");
+	PMethodInfo protectedMethod = type->GetMethodInfo("TestProtectedMethod");
+	privateMethod->InvokeWithoutRes(pins);
+	protectedMethod->InvokeWithoutRes(pins);
+
 	
 	PMethodInfo methodInfo = type->GetMethodInfo("TestFunc");
 	PMethodInfo sayMethod = type->GetMethodInfo("Say");

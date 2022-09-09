@@ -10,9 +10,19 @@ public:
 private:
 	DEFINE_PRIVATE_MEMBER(TestScript, m_private)
 	int m_private;
+
+	REFRECT_PRIVATE_METHOD(void, TestScript, TestPrivateMethod,PTestPrivateMethod)
+	void TestPrivateMethod() {
+		std::cout << "Private Method" << std::endl;
+	}
 protected:
 	DEFINE_PROTECTED_MEMBER(TestScript, m_protected)
 	int m_protected;
+
+	REFRECT_PROTECTED_METHOD(void, TestScript, TestProtectedMethod,PTestProtectedMethod)
+	void TestProtectedMethod() {
+		std::cout << "Protected Method" << std::endl;
+	}
 public:
 	std::string test_str;
 	int m_a;
