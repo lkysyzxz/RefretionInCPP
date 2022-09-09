@@ -139,11 +139,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DerivedTestScript.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="refrection.cpp" />
     <ClCompile Include="TestClass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DerivedTestScript.h" />
     <ClInclude Include="refrection.h" />
     <ClInclude Include="TestClass.h" />
   </ItemGroup>

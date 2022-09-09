@@ -1,6 +1,6 @@
 #include "TestClass.h"
 
-REGISTER_CLASS(TestScript, test_script)
+REGISTER_CLASS(TestScript, test_script,0)
 REGISTER_FIELD(TestScript, test_script, int, m_a)
 REGISTER_FIELD(TestScript, test_script, double, m_c)
 REGISTER_FIELD(TestScript, test_script, int, m_b)

@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
 #include <functional>
 #include <stdarg.h>
 
@@ -34,6 +35,7 @@ private:
 	PInstanceGenerator generator;
 	std::map<std::string, PFieldInfo> field_map;
 	std::map<std::string, PMethodInfo> method_map;
+	std::vector<std::string> parent_class_names;
 public:
 	std::string class_type;
 	std::string class_name;
@@ -42,11 +44,18 @@ public:
 
 	}
 
-	Type(const std::string& ct, const std::string& cn, PInstanceGenerator pg) {
+	Type(const std::string& ct, const std::string& cn, PInstanceGenerator pg, int parent_count, ...) {
 		class_type = ct;
 		class_name = cn;
 		generator = pg;
 		GlobalRefrector::GetRefrector().class_map.insert(std::map<std::string, Type*>::value_type(class_name, this));
+		va_list ap;
+		va_start(ap, parent_count);
+		for (int i = 0; i < parent_count; i++) {
+			char* parent_name = va_arg(ap, char*);
+			parent_class_names.push_back(std::string(parent_name));
+		}
+		va_end(ap);
 	}
 
 	void AddFieldInfo(std::string field_name, PFieldInfo field_info) {
@@ -55,12 +64,44 @@ public:
 		}
 	}
 
+	PFieldInfo GetFieldInfoInParents(std::string &field_name) {
+		for(int i = 0;i<parent_class_names.size();i++)
+		{
+			std::string parent_name = parent_class_names[i];
+			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
+			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
+				PType ptype = it->second;
+				PFieldInfo pfield = ptype->GetFieldInfo(field_name);
+				if (pfield != NULL) {
+					return pfield;
+				}
+			}
+		}
+		return NULL;
+	}
+
+	PMethodInfo GetMethodInfoInParents(std::string& method_name) {
+		for (int i = 0; i < parent_class_names.size(); i++)
+		{
+			std::string parent_name = parent_class_names[i];
+			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
+			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
+				PType ptype = it->second;
+				PMethodInfo pmethod = ptype->GetMethodInfo(method_name);
+				if (pmethod != NULL) {
+					return pmethod;
+				}
+			}
+		}
+		return NULL;
+	}
+
 	PFieldInfo GetFieldInfo(std::string field_name) {
-		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : NULL;
+		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : GetFieldInfoInParents(field_name);
 	}
 
 	PMethodInfo GetMethodInfo(std::string method_name) {
-		return method_map.find(method_name) != method_map.end() ? method_map.find(method_name)->second : NULL;
+		return method_map.find(method_name) != method_map.end() ? method_map.find(method_name)->second : GetMethodInfoInParents(method_name);
 	}
 
 	void AddMethodInfo(std::string method_name, PMethodInfo method_info) {
@@ -126,7 +167,7 @@ public:
 template<typename ResType, typename ClassType, typename MethodType, typename ...Params>
 class DerivedMethodWithRes :public MethodInfo {
 private:
-	void EmptyFunc(Params ...params) {
+	void EmptyFunc(...) {
 
 	}
 	void JumpToEnd(va_list &ap) {
@@ -158,7 +199,7 @@ public:
 template<typename ClassType, typename MethodType, typename ...Params>
 class DerivedMethodWithoutRes :public MethodInfo {
 private:
-	void EmptyFunc(Params ...params) {
+	void EmptyFunc(...) {
 
 	}
 	void JumpToEnd(va_list &ap) {
@@ -235,8 +276,8 @@ public:
 #define	DEFINED_METHOD_POINTER(res_type, class_type, define_name, ...) typedef res_type(class_type::* define_name)(__VA_ARGS__);
 
 
-#define REGISTER_CLASS(class_type,class_name)\
-		Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance);
+#define REGISTER_CLASS(class_type,class_name,parent_count,...)\
+		Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
 
 #define REGISTER_FIELD(class_type,class_name, field_type, field_name)\
 	FieldInfo g_field_##class_name_##field_type_##field_name(#class_name, #field_type, #field_name, MEMBER_OFFSET(class_type, field_name));
@@ -252,3 +293,6 @@ public:
 
 #define REGISTER_METHOD_WITH_RES(res_type,class_type, class_name, method_pointer, method_name, ...)\
 	DerivedMethodWithRes<res_type,class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##res_type_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);
+
+#define REGISTER_NON_PUBLIC_METHOD_WITH_RES(res_type,class_type, class_name, method_pointer, method_name, ...)\
+	DerivedMethodWithRes<res_type,class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##res_type_##class_type_##class_name_##method_pointer(#class_name,#method_name, class_type::GetMethodPointer_##method_name());
