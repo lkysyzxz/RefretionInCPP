@@ -7,12 +7,23 @@ using namespace std;
 class TestScript {
 public:
 	SET_AS_REFRECTABLE_CLASS(TestScript)
+private:
+	DEFINE_PRIVATE_MEMBER(TestScript, m_private)
+	int m_private;
+protected:
+	DEFINE_PROTECTED_MEMBER(TestScript, m_protected)
+	int m_protected;
 public:
+	std::string test_str;
 	int m_a;
+
 
 	TestScript() {
 		m_a = 10;
 		m_c = 5.0f;
+		m_private = 3;
+		m_protected = 6;
+		test_str = "tes";
 	}
 
 	double m_c;

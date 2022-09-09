@@ -191,10 +191,28 @@ public:
 //	获取结构体或类某个成员变量的偏移
 #define MEMBER_OFFSET(classtype, member) (uint64_t)(&(((classtype*)0)->member))
 
+#define DEFINE_PRIVATE_MEMBER(classtype, member)\
+	public:\
+	static uint64_t GetMemberOffset_##member(){\
+		return (uint64_t)(&(((classtype*)0)->member));\
+	}\
+	private:\
+
+#define DEFINE_PROTECTED_MEMBER(classtype, member)\
+	public:\
+	static uint64_t GetMemberOffset_##member(){\
+		return (uint64_t)(&(((classtype*)0)->member));\
+	}\
+	protected:\
+
+#define NON_PUBLIC_MEMBER_OFFSET(classtype, member)\
+	classtype::GetMemberOffset_##member()
+
 #define SET_AS_REFRECTABLE_CLASS(class_type)\
 	static void* CreateInstance() {\
 		return new class_type();\
 	}\
+	
 
 #define	DEFINED_METHOD_POINTER(res_type, class_type, define_name, ...) typedef res_type(class_type::* define_name)(__VA_ARGS__);
 
@@ -204,6 +222,9 @@ public:
 
 #define REGISTER_FIELD(class_type,class_name, field_type, field_name)\
 	FieldInfo g_field_##class_name_##field_type_##field_name(#class_name, #field_type, #field_name, MEMBER_OFFSET(class_type, field_name));
+
+#define REGISTER_NON_PUBLIC_FIELD(class_type,class_name, field_type, field_name)\
+	FieldInfo g_field_##class_name_##field_type_##field_name(#class_name, #field_type, #field_name, NON_PUBLIC_MEMBER_OFFSET(class_type,field_name));
 
 #define REGISTER_METHOD_WITHOUT_RES(class_type, class_name, method_pointer, method_name, ...)\
 	DerivedMethodWithoutRes<class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);
