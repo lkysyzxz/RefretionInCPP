@@ -13,3 +13,7 @@ REGISTER_METHOD_WITHOUT_RES(TestScript, test_script, PSay, Say, std::string, dou
 REGISTER_METHOD_WITH_RES(double, TestScript, test_script, PFloatAddIntToDouble, FloatAddIntToDouble, double, int)
 REGISTER_NON_PUBLIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestPrivateMethod, TestPrivateMethod)
 REGISTER_NON_PUBLIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestProtectedMethod, TestProtectedMethod)
+
+REGISTER_STATIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestStaticMethod, TestStaticMethod)
+REGISTER_NON_PUBLIC_STATIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestProtectedStaticMethod, TestProtectedStaticMethod)
+REGISTER_NON_PUBLIC_STATIC_METHOD_WITHOUT_RES(TestScript, test_script, PTestPrivateStaticMethod, TestPrivateStaticMethod,int,int,int)

@@ -15,6 +15,12 @@ private:
 	void TestPrivateMethod() {
 		std::cout << "Private Method" << std::endl;
 	}
+
+	REFRECT_PRIVATE_STATIC_METHOD_POINTER(void, TestScript, TestPrivateStaticMethod, PTestPrivateStaticMethod,int,int,int)
+	static void TestPrivateStaticMethod(int x,int y,int z) {
+		cout << "TestPrivateStaticMethod" << endl;
+	}
+
 protected:
 	DEFINE_PROTECTED_MEMBER(TestScript, m_protected)
 	int m_protected;
@@ -23,7 +29,19 @@ protected:
 	void TestProtectedMethod() {
 		std::cout << "Protected Method" << std::endl;
 	}
+
+	REFRECT_PROTECTED_STATIC_METHOD_POINTER(void, TestScript, TestProtectedStaticMethod, PTestProtectedStaticMethod)
+	static void TestProtectedStaticMethod() {
+		cout << "TestProtectedStaticMethod" << endl;
+	}
+
 public:
+
+	DEFINED_STATIC_METHOD_POINTER(void, TestScript, TestStaticMethod,PTestStaticMethod)
+	static void TestStaticMethod() {
+		cout << "TestStaticMethod" << endl;
+	}
+
 	std::string test_str;
 	int m_a;
 

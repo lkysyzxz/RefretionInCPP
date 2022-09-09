@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "refrection.h"
+#include "TestClass.h"
 
 using namespace std;
 
@@ -12,8 +13,6 @@ void Debug(int x, ...) {
 }
 
 int main() {
-
-
 	PType type = GlobalRefrector::GetRefrector().class_map["test_script"];
 	void* pins = type->CreateInstance();
 	PFieldInfo fieldInfo = type->GetFieldInfo("m_a");
@@ -48,6 +47,10 @@ int main() {
 	PFieldInfo fieldFromDerived = pDerivedType->GetFieldInfo("m_a");
 	int xx = *(int*)fieldInfo->GetValueAddress(pins);
 	int mm = *(int*)fieldFromDerived->GetValueAddress(pDerivedIns);
+
+	PMethodInfo testStatic = pDerivedType->GetMethodInfo("TestPrivateStaticMethod");
+	testStatic->InvokeStaticWithoutRes<int,int,int>(1,2,2);
+
 	return 0;
 }
 

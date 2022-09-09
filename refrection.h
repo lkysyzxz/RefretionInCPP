@@ -137,8 +137,10 @@ public:
 class MethodInfo {
 public:
 	std::string method_name;
-	MethodInfo(const std::string &cn, const std::string& mn) {
+	bool is_static_method;
+	MethodInfo(const std::string &cn, const std::string& mn,bool is_static = false) {
 		method_name = mn;
+		is_static_method = is_static;
 		PType type = GlobalRefrector::GetRefrector().class_map.find(cn)->second;
 		type->AddMethodInfo(method_name, this);
 	}
@@ -150,6 +152,13 @@ public:
 		return res;
 	}
 
+	template<typename ResType, typename ...Params>
+	ResType InvokeStaticWithRes(Params...params) {
+		ResType res;
+		InvokeStaticMethodWithResDerive(&res, params...);
+		return res;
+	}
+
 	virtual void InvokeWithResDerive(void* res_address, void* pins, ...) {
 
 	}
@@ -158,9 +167,22 @@ public:
 
 	}
 
+	virtual void InvokeStaticMethodWithResDerive(void* res_address, ...) {
+
+	}
+
+	virtual void InvokeStaticMethodWithoutResDerive(void* place_holder, ...) {
+
+	}
+
 	template<typename ...Params>
 	void InvokeWithoutRes(void* pins, Params...params) {
 		InvokeWithoutResDerive(pins, params...);
+	}
+
+	template<typename ...Params>
+	void InvokeStaticWithoutRes(Params...params) {
+		InvokeStaticMethodWithoutResDerive(NULL,params...);
 	}
 };
 
@@ -196,6 +218,39 @@ public:
 	}
 };
 
+template<typename ResType, typename MethodType, typename ...Params>
+class StaticDerivedMethodWithRes :public MethodInfo {
+private:
+	void EmptyFunc(...) {
+
+	}
+	void JumpToEnd(va_list& ap) {
+		EmptyFunc(va_arg(ap, Params)...);
+	}
+
+	template<typename T>
+	T GetReverse(va_list& ap) {
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) 这里要逆着这个运算来，把ap有减回去。
+		T x = *(T*)(ap - _INTSIZEOF(T));
+		ap -= _INTSIZEOF(T);
+		return x;
+	}
+public:
+	MethodType func;
+	StaticDerivedMethodWithRes(const std::string& cn, const std::string& mn, MethodType fc) :MethodInfo(cn, mn,true) {
+		func = fc;
+	}
+
+	virtual void InvokeStaticMethodWithResDerive(void* res_address, void* pins, ...) {
+		va_list ap;
+		va_start(ap, pins);
+		JumpToEnd(ap);
+		*(ResType*)res_address = (*func)(GetReverse<Params>(ap)...);
+		va_end(ap);
+	}
+};
+
+
 template<typename ClassType, typename MethodType, typename ...Params>
 class DerivedMethodWithoutRes :public MethodInfo {
 private:
@@ -224,6 +279,38 @@ public:
 		va_start(ap, pins);
 		JumpToEnd(ap);
 		((ClassType*)pins->*func)(GetReverse<Params>(ap)...);
+		va_end(ap);
+	}
+};
+
+template<typename MethodType, typename ...Params>
+class StaticDerivedMethodWithoutRes :public MethodInfo {
+private:
+	void EmptyFunc(...) {
+
+	}
+	void JumpToEnd(va_list& ap) {
+		EmptyFunc(va_arg(ap, Params)...);
+	}
+
+	template<typename T>
+	T GetReverse(va_list& ap) {
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) 这里要逆着这个运算来，把ap有减回去。
+		T x = *(T*)(ap - _INTSIZEOF(T));
+		ap -= _INTSIZEOF(T);
+		return x;
+	}
+public:
+	MethodType func;
+	StaticDerivedMethodWithoutRes(const std::string& cn, const std::string& mn, MethodType fc) :MethodInfo(cn, mn, true) {
+		func = fc;
+	}
+
+	virtual void InvokeStaticMethodWithoutResDerive(void* placeholder, ...) {
+		va_list ap;
+		va_start(ap, placeholder);
+		JumpToEnd(ap);
+		(*func)(GetReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };
@@ -296,3 +383,33 @@ public:
 
 #define REGISTER_NON_PUBLIC_METHOD_WITH_RES(res_type,class_type, class_name, method_pointer, method_name, ...)\
 	DerivedMethodWithRes<res_type,class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##res_type_##class_type_##class_name_##method_pointer(#class_name,#method_name, class_type::GetMethodPointer_##method_name());
+
+#define	DEFINED_STATIC_METHOD_POINTER(res_type, class_type, method_name, define_name, ...) typedef res_type (*define_name)(__VA_ARGS__);
+
+#define	REFRECT_PRIVATE_STATIC_METHOD_POINTER(res_type, class_type, method_name, define_name, ...) \
+	public:\
+		typedef res_type(* define_name)(__VA_ARGS__);\
+		static define_name GetStaticMethodPointer_##method_name(){\
+			return &class_type::method_name;\
+		}\
+	private:\
+
+#define	REFRECT_PROTECTED_STATIC_METHOD_POINTER(res_type, class_type, method_name, define_name, ...) \
+	public:\
+		typedef res_type(*define_name)(__VA_ARGS__);\
+		static define_name GetStaticMethodPointer_##method_name(){\
+			return &class_type::method_name;\
+		}\
+	protected:\
+
+#define REGISTER_STATIC_METHOD_WITHOUT_RES(class_type, class_name, method_pointer, method_name, ...)\
+	StaticDerivedMethodWithoutRes<class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);\
+
+#define REGISTER_NON_PUBLIC_STATIC_METHOD_WITHOUT_RES(class_type, class_name, method_pointer, method_name, ...)\
+	StaticDerivedMethodWithoutRes<class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, class_type::GetStaticMethodPointer_##method_name());\
+
+#define REGISTER_STATIC_METHOD_WITH_RES(res_type,class_type, class_name, method_pointer, method_name, ...)\
+	StaticDerivedMethodWithRes<class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);\
+
+#define REGISTER_NON_PUBLIC_METHOD_WITH_RES(res_type,class_type, class_name, method_pointer, method_name, ...)\
+	StaticDerivedMethodWithRes<class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, class_type::GetStaticMethodPointer_##method_name());\
