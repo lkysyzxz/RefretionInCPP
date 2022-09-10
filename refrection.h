@@ -8,10 +8,21 @@
 #include <stdarg.h>
 
 typedef void* (*PInstanceGenerator)();
+typedef void* (*PAbstractInstanceGenerator)(const std::string& deriedClassName);
+
+class BaseType;
+
+typedef BaseType* PBaseType;
 
 class Type;
 
-typedef  Type* PType;
+typedef Type* PType;
+
+class AbstractType;
+
+typedef AbstractType* PAbstractType;
+
+
 
 class FieldInfo;
 
@@ -21,18 +32,17 @@ class MethodInfo;
 
 typedef MethodInfo* PMethodInfo;
 
-class GlobalRefractor;
-
 class GlobalRefrector {
 public:
 	static GlobalRefrector& GetRefrector();
 public:
-	std::map<std::string, PType> class_map;
+	//std::map<std::string, PType> class_map;
+	//std::map<std::string, PAbstractType> abs_class_map;
+	std::map<std::string, PBaseType> class_map;
 };
 
-class Type {
-private:
-	PInstanceGenerator generator;
+class BaseType {
+protected:
 	std::map<std::string, PFieldInfo> field_map;
 	std::map<std::string, PMethodInfo> method_map;
 	std::vector<std::string> parent_class_names;
@@ -40,13 +50,92 @@ public:
 	std::string class_type;
 	std::string class_name;
 
+	BaseType() {
+
+	}
+
+	BaseType(const std::string& ct, const std::string& cn) {
+		class_type = ct;
+		class_name = cn;
+	}
+
+	void AddFieldInfo(std::string field_name, PFieldInfo field_info) {
+		if (field_map.find(field_name) == field_map.end()) {
+			field_map.insert(std::pair<std::string, PFieldInfo>(field_name, field_info));
+		}
+	}
+
+	PFieldInfo GetFieldInfoInParents(std::string& field_name) {
+		for (int i = 0; i < parent_class_names.size(); i++)
+		{
+			std::string parent_name = parent_class_names[i];
+			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
+			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
+				PBaseType ptype = it->second;
+				PFieldInfo pfield = ptype->GetFieldInfo(field_name);
+				if (pfield != NULL) {
+					return pfield;
+				}
+			}
+		}
+		return NULL;
+	}
+
+	PMethodInfo GetMethodInfoInParents(std::string& method_name) {
+		for (int i = 0; i < parent_class_names.size(); i++)
+		{
+			std::string parent_name = parent_class_names[i];
+			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
+			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
+				PBaseType ptype = it->second;
+				PMethodInfo pmethod = ptype->GetMethodInfo(method_name);
+				if (pmethod != NULL) {
+					return pmethod;
+				}
+			}
+		}
+		return NULL;
+	}
+
+	PFieldInfo GetFieldInfo(std::string field_name) {
+		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : GetFieldInfoInParents(field_name);
+	}
+
+	PMethodInfo GetMethodInfo(std::string method_name) {
+		return method_map.find(method_name) != method_map.end() ? method_map.find(method_name)->second : GetMethodInfoInParents(method_name);
+	}
+
+	void AddMethodInfo(std::string method_name, PMethodInfo method_info) {
+		method_map.insert(std::pair<std::string, PMethodInfo>(method_name, method_info));
+	}
+
+	virtual void* CreateInstance() {
+		return NULL;
+	}
+
+	virtual void* CreateInstance(const std::string& derivedClassName) {
+		return NULL;
+	}
+};
+
+class Type:public BaseType {
+private:
+	PInstanceGenerator generator;
+	//std::map<std::string, PFieldInfo> field_map;
+	//std::map<std::string, PMethodInfo> method_map;
+	//std::vector<std::string> parent_class_names;
+public:
+	//std::string class_type;
+	//std::string class_name;
+
 	Type() {
 
 	}
 
-	Type(const std::string& ct, const std::string& cn, PInstanceGenerator pg, int parent_count, ...) {
-		class_type = ct;
-		class_name = cn;
+	Type(const std::string& ct, const std::string& cn, PInstanceGenerator pg, int parent_count, ...)
+		:BaseType(ct,cn){
+		//class_type = ct;
+		//class_name = cn;
 		generator = pg;
 		GlobalRefrector::GetRefrector().class_map.insert(std::map<std::string, Type*>::value_type(class_name, this));
 		va_list ap;
@@ -58,7 +147,7 @@ public:
 		va_end(ap);
 	}
 
-	void AddFieldInfo(std::string field_name, PFieldInfo field_info) {
+	/*void AddFieldInfo(std::string field_name, PFieldInfo field_info) {
 		if (field_map.find(field_name) == field_map.end()) {
 			field_map.insert(std::pair<std::string, PFieldInfo>(field_name, field_info));
 		}
@@ -106,11 +195,95 @@ public:
 
 	void AddMethodInfo(std::string method_name, PMethodInfo method_info) {
 		method_map.insert(std::pair<std::string, PMethodInfo>(method_name, method_info));
-	}
+	}*/
 	
 
-	void* CreateInstance()const {
+	virtual void* CreateInstance(){
 		return generator != NULL ? generator() : NULL;
+	}
+};
+
+class AbstractType:public BaseType {
+private:
+	PAbstractInstanceGenerator generator;
+	//std::map<std::string, PFieldInfo> field_map;
+	//std::map<std::string, PMethodInfo> method_map;
+	//std::vector<std::string> parent_class_names;
+public:
+	//std::string class_type;
+	//std::string class_name;
+	AbstractType() {
+
+	}
+
+	AbstractType(const std::string& ct, const std::string& cn, PAbstractInstanceGenerator pg, int parent_count, ...)
+		:BaseType(ct,cn)
+	{
+		//class_type = ct;
+		//class_name = cn;
+		generator = pg;
+		GlobalRefrector::GetRefrector().class_map.insert(std::map<std::string, AbstractType*>::value_type(class_name, this));
+		va_list ap;
+		va_start(ap, parent_count);
+		for (int i = 0; i < parent_count; i++) {
+			char* parent_name = va_arg(ap, char*);
+			parent_class_names.push_back(std::string(parent_name));
+		}
+		va_end(ap);
+	}
+
+	/*void AddFieldInfo(std::string field_name, PFieldInfo field_info) {
+		if (field_map.find(field_name) == field_map.end()) {
+			field_map.insert(std::pair<std::string, PFieldInfo>(field_name, field_info));
+		}
+	}
+
+	PFieldInfo GetFieldInfoInParents(std::string& field_name) {
+		for (int i = 0; i < parent_class_names.size(); i++)
+		{
+			std::string parent_name = parent_class_names[i];
+			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
+			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
+				PType ptype = it->second;
+				PFieldInfo pfield = ptype->GetFieldInfo(field_name);
+				if (pfield != NULL) {
+					return pfield;
+				}
+			}
+		}
+		return NULL;
+	}
+
+	PMethodInfo GetMethodInfoInParents(std::string& method_name) {
+		for (int i = 0; i < parent_class_names.size(); i++)
+		{
+			std::string parent_name = parent_class_names[i];
+			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
+			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
+				PType ptype = it->second;
+				PMethodInfo pmethod = ptype->GetMethodInfo(method_name);
+				if (pmethod != NULL) {
+					return pmethod;
+				}
+			}
+		}
+		return NULL;
+	}
+
+	PFieldInfo GetFieldInfo(std::string field_name) {
+		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : GetFieldInfoInParents(field_name);
+	}
+
+	PMethodInfo GetMethodInfo(std::string method_name) {
+		return method_map.find(method_name) != method_map.end() ? method_map.find(method_name)->second : GetMethodInfoInParents(method_name);
+	}
+
+	void AddMethodInfo(std::string method_name, PMethodInfo method_info) {
+		method_map.insert(std::pair<std::string, PMethodInfo>(method_name, method_info));
+	}*/
+
+	virtual void* CreateInstance(const std::string &derivedClassName){
+		return generator != NULL ? generator(derivedClassName) : NULL;
 	}
 };
 
@@ -125,7 +298,7 @@ public:
 		field_type = ft;
 		field_name = fn;
 		offset = offt;
-		PType type = GlobalRefrector::GetRefrector().class_map.find(class_name)->second;
+		PBaseType type = GlobalRefrector::GetRefrector().class_map.find(class_name)->second;
 		type->AddFieldInfo(field_name, this);
 	}
 
@@ -141,7 +314,7 @@ public:
 	MethodInfo(const std::string &cn, const std::string& mn,bool is_static = false) {
 		method_name = mn;
 		is_static_method = is_static;
-		PType type = GlobalRefrector::GetRefrector().class_map.find(cn)->second;
+		PBaseType type = GlobalRefrector::GetRefrector().class_map.find(cn)->second;
 		type->AddMethodInfo(method_name, this);
 	}
 	
@@ -340,6 +513,16 @@ public:
 	static void* CreateInstance() {\
 		return new class_type();\
 	}\
+
+#define SET_AS_ABSTRACT_REFRECTALE_CLASS()\
+	static void* CreateInstance(const std::string& class_name) {\
+		auto it = GlobalRefrector::GetRefrector().class_map.find(class_name);\
+		if (it != GlobalRefrector::GetRefrector().class_map.end()) {\
+			PBaseType derivedType = GlobalRefrector::GetRefrector().class_map[class_name];\
+			return derivedType->CreateInstance();\
+		}\
+		return NULL;\
+	}\
 	
 
 #define	DEFINED_METHOD_POINTER(res_type, class_type, define_name, ...) typedef res_type(class_type::* define_name)(__VA_ARGS__);
@@ -364,7 +547,10 @@ public:
 
 
 #define REGISTER_CLASS(class_type,class_name,parent_count,...)\
-		Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
+	Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
+
+#define REGISTER_ABSTRACT_CLASS(class_type, class_name, parent_count,...)\
+	AbstractType g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
 
 #define REGISTER_FIELD(class_type,class_name, field_type, field_name)\
 	FieldInfo g_field_##class_name_##field_type_##field_name(#class_name, #field_type, #field_name, MEMBER_OFFSET(class_type, field_name));

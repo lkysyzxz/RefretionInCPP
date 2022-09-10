@@ -10,4 +10,8 @@ public:
 		cout << "Call Test Func in Derived Instance" << endl;
 		return x + y + z;
 	}
+
+	virtual void PureVirtualMethod() {
+		std::cout << "Call pure virtual method" << std::endl;
+	}
 };

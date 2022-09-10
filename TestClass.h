@@ -6,7 +6,7 @@ using namespace std;
 
 class TestScript {
 public:
-	SET_AS_REFRECTABLE_CLASS(TestScript)
+	SET_AS_ABSTRACT_REFRECTALE_CLASS()
 private:
 	DEFINE_PRIVATE_MEMBER(TestScript, m_private)
 	int m_private;
@@ -73,5 +73,8 @@ public:
 	double FloatAddIntToDouble(double x, int y) {
 		return double(x + (double)y);
 	}
+
+	DEFINED_METHOD_POINTER(void, TestScript, PPureVirtualMethod)
+	virtual void PureVirtualMethod() = 0;
 };
 
