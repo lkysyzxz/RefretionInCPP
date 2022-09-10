@@ -58,8 +58,8 @@ public:
 	int m_b;
 
 	DEFINED_METHOD_POINTER(int, TestScript, PTestFunc,int,int,int)
-	int TestFunc(int x,int y,int z) {
-		cout << m_c << endl;
+	virtual int TestFunc(int x,int y,int z) {
+		cout << "Call Teset Func in Base Instance" << endl;
 		return x+y+z;
 	}
 

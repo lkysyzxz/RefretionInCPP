@@ -5,4 +5,9 @@
 class DerivedTestScript :public TestScript {
 public:
 	SET_AS_REFRECTABLE_CLASS(DerivedTestScript)
+
+	virtual int TestFunc(int x, int y, int z) {
+		cout << "Call Test Func in Derived Instance" << endl;
+		return x + y + z;
+	}
 };
