@@ -14,6 +14,10 @@ class BaseType;
 
 typedef BaseType* PBaseType;
 
+class ClassType;
+
+typedef ClassType* PClassType;
+
 class Type;
 
 typedef Type* PType;
@@ -43,15 +47,12 @@ public:
 	static GlobalRefrector& GetRefrector();
 public:
 	std::map<std::string, PBaseType> class_map;
-	std::map<std::string, PStructType> struct_map;
 	std::map<std::string, PFunctionInfo> function_map;
 };
 
 class BaseType {
 protected:
 	std::map<std::string, PFieldInfo> field_map;
-	std::map<std::string, PMethodInfo> method_map;
-	std::vector<std::string> parent_class_names;
 public:
 	std::string class_type;
 	std::string class_name;
@@ -65,10 +66,31 @@ public:
 		class_name = cn;
 	}
 
+	virtual PFieldInfo GetFieldInfo(std::string field_name) {
+		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : NULL;
+	}
+
 	void AddFieldInfo(std::string field_name, PFieldInfo field_info) {
 		if (field_map.find(field_name) == field_map.end()) {
 			field_map.insert(std::pair<std::string, PFieldInfo>(field_name, field_info));
 		}
+	}
+
+	virtual void* CreateInstance() {
+		return NULL;
+	}
+};
+
+class ClassType :public BaseType {
+protected:
+	std::map<std::string, PMethodInfo> method_map;
+	std::vector<std::string> parent_class_names;
+public:
+	ClassType() {
+
+	}
+
+	ClassType(const std::string& ct, const std::string& cn):BaseType(ct,cn) {
 	}
 
 	PFieldInfo GetFieldInfoInParents(std::string& field_name) {
@@ -87,13 +109,17 @@ public:
 		return NULL;
 	}
 
+	virtual PFieldInfo GetFieldInfo(std::string field_name) {
+		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : GetFieldInfoInParents(field_name);
+	}
+
 	PMethodInfo GetMethodInfoInParents(std::string& method_name) {
 		for (int i = 0; i < parent_class_names.size(); i++)
 		{
 			std::string parent_name = parent_class_names[i];
 			auto it = GlobalRefrector::GetRefrector().class_map.find(parent_name);
 			if (it != GlobalRefrector::GetRefrector().class_map.end()) {
-				PBaseType ptype = it->second;
+				PClassType ptype = (PClassType)it->second;
 				PMethodInfo pmethod = ptype->GetMethodInfo(method_name);
 				if (pmethod != NULL) {
 					return pmethod;
@@ -101,10 +127,6 @@ public:
 			}
 		}
 		return NULL;
-	}
-
-	PFieldInfo GetFieldInfo(std::string field_name) {
-		return field_map.find(field_name) != field_map.end() ? field_map.find(field_name)->second : GetFieldInfoInParents(field_name);
 	}
 
 	PMethodInfo GetMethodInfo(std::string method_name) {
@@ -115,16 +137,12 @@ public:
 		method_map.insert(std::pair<std::string, PMethodInfo>(method_name, method_info));
 	}
 
-	virtual void* CreateInstance() {
-		return NULL;
-	}
-
 	virtual void* CreateInstance(const std::string& derivedClassName) {
 		return NULL;
 	}
 };
 
-class Type :public BaseType {
+class Type :public ClassType {
 private:
 	PInstanceGenerator generator;
 public:
@@ -133,7 +151,7 @@ public:
 	}
 
 	Type(const std::string& ct, const std::string& cn, PInstanceGenerator pg, int parent_count, ...)
-		:BaseType(ct, cn) {
+		:ClassType(ct, cn) {
 		generator = pg;
 		GlobalRefrector::GetRefrector().class_map.insert(std::map<std::string, Type*>::value_type(class_name, this));
 		va_list ap;
@@ -150,9 +168,8 @@ public:
 	}
 };
 
-class StructType{
+class StructType:public BaseType{
 private:
-	std::map<std::string, PFieldInfo> field_map;
 	PInstanceGenerator generator;
 public:
 
@@ -160,9 +177,9 @@ public:
 
 	}
 
-	StructType(const std::string& sn, PInstanceGenerator pg){
+	StructType(const std::string& sn, PInstanceGenerator pg):BaseType(sn,sn){
 		generator = pg;
-		GlobalRefrector::GetRefrector().struct_map.insert(std::map<std::string, StructType*>::value_type(sn, this));
+		GlobalRefrector::GetRefrector().class_map.insert(std::map<std::string, PBaseType>::value_type(sn, this));
 	}
 
 	virtual void* CreateInstance() {
@@ -170,7 +187,7 @@ public:
 	}
 };
 
-class AbstractType :public BaseType {
+class AbstractType :public ClassType {
 private:
 	PAbstractInstanceGenerator generator;
 public:
@@ -179,7 +196,7 @@ public:
 	}
 
 	AbstractType(const std::string& ct, const std::string& cn, PAbstractInstanceGenerator pg, int parent_count, ...)
-		:BaseType(ct, cn)
+		:ClassType(ct, cn)
 	{
 		generator = pg;
 		GlobalRefrector::GetRefrector().class_map.insert(std::map<std::string, AbstractType*>::value_type(class_name, this));
@@ -215,6 +232,10 @@ public:
 	void* GetValueAddress(void* pins) {
 		return (void*)(((uint64_t)pins) + offset);
 	}
+
+	void* GetPointerValue(void* pins) {
+		return (void*)(*(uint64_t*)(((uint64_t)pins) + offset));
+	}
 };
 
 class MethodInfo {
@@ -224,7 +245,7 @@ public:
 	MethodInfo(const std::string& cn, const std::string& mn, bool is_static = false) {
 		method_name = mn;
 		is_static_method = is_static;
-		PBaseType type = GlobalRefrector::GetRefrector().class_map.find(cn)->second;
+		PClassType type = (PClassType)GlobalRefrector::GetRefrector().class_map.find(cn)->second;
 		type->AddMethodInfo(method_name, this);
 	}
 
@@ -281,7 +302,7 @@ private:
 
 	template<typename T>
 	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ÕâÀïÒªÄæ×ÅÕâ¸öÔËËãÀ´£¬°ÑapÓÐ¼õ»ØÈ¥¡£
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½apï¿½Ð¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½
 		T x = *(T*)(ap - _INTSIZEOF(T));
 		ap -= _INTSIZEOF(T);
 		return x;
@@ -313,7 +334,7 @@ private:
 
 	template<typename T>
 	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ÕâÀïÒªÄæ×ÅÕâ¸öÔËËãÀ´£¬°ÑapÓÐ¼õ»ØÈ¥¡£
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½apï¿½Ð¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½
 		T x = *(T*)(ap - _INTSIZEOF(T));
 		ap -= _INTSIZEOF(T);
 		return x;
@@ -346,7 +367,7 @@ private:
 
 	template<typename T>
 	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ÕâÀïÒªÄæ×ÅÕâ¸öÔËËãÀ´£¬°ÑapÓÐ¼õ»ØÈ¥¡£
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½apï¿½Ð¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½
 		T x = *(T*)(ap - _INTSIZEOF(T));
 		ap -= _INTSIZEOF(T);
 		return x;
@@ -378,7 +399,7 @@ private:
 
 	template<typename T>
 	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ÕâÀïÒªÄæ×ÅÕâ¸öÔËËãÀ´£¬°ÑapÓÐ¼õ»ØÈ¥¡£
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½apï¿½Ð¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½
 		T x = *(T*)(ap - _INTSIZEOF(T));
 		ap -= _INTSIZEOF(T);
 		return x;
@@ -441,7 +462,7 @@ private:
 
 	template<typename T>
 	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ÕâÀïÒªÄæ×ÅÕâ¸öÔËËãÀ´£¬°ÑapÓÐ¼õ»ØÈ¥¡£
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½apï¿½Ð¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½
 		T x = *(T*)(ap - _INTSIZEOF(T));
 		ap -= _INTSIZEOF(T);
 		return x;
@@ -473,7 +494,7 @@ private:
 
 	template<typename T>
 	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ÕâÀïÒªÄæ×ÅÕâ¸öÔËËãÀ´£¬°ÑapÓÐ¼õ»ØÈ¥¡£
+		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ï¿½ï¿½ï¿½ï¿½Òªï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½apï¿½Ð¼ï¿½ï¿½ï¿½È¥ï¿½ï¿½
 		T x = *(T*)(ap - _INTSIZEOF(T));
 		ap -= _INTSIZEOF(T);
 		return x;
@@ -493,7 +514,7 @@ public:
 	}
 };
 
-//	»ñÈ¡½á¹¹Ìå»òÀàÄ³¸ö³ÉÔ±±äÁ¿µÄÆ«ÒÆ
+//	ï¿½ï¿½È¡ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ä³ï¿½ï¿½ï¿½ï¿½Ô±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ«ï¿½ï¿½
 #define MEMBER_OFFSET(classtype, member) (uint64_t)(&(((classtype*)0)->member))
 
 #define DEFINE_PRIVATE_MEMBER(classtype, member)\
@@ -611,10 +632,13 @@ public:
 #define DEFINE_FUNCTION_POINTER(res_type, define_name, ...) typedef res_type (*define_name)(__VA_ARGS__);
 
 #define REGISTER_STRUCT(struct_name)\
+	SET_AS_REFRECTABLE_STRUCT(struct_name)\
 	StructType g_type_##struct_name(#struct_name, CreateInstance##struct_name);
 
 #define REGISTER_FUNCTION_WITH_RES(res_type,function_type, function_name, ...)\
+	DEFINE_FUNCTION_POINTER(res_type, function_type, __VA_ARGS__)\
 	FunctionWithRes<res_type,function_type, ##__VA_ARGS__> g_function_##res_type_##function_type_##function_name(#function_name, &function_name);
 
 #define REGISTER_FUNCTION_WITHOUT_RES(function_type, function_name, ...)\
-	FunctionWithoutRes<function_type, ##__VA_ARGS__> g_function_##function_type_##function_name(#function_name, function_name);
+	DEFINE_FUNCTION_POINTER(void, function_type, __VA_ARGS__)\
+	FunctionWithoutRes<function_type, ##__VA_ARGS__> g_function_##function_type_##function_name(#function_name, &function_name);
