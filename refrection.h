@@ -233,6 +233,11 @@ public:
 		return (void*)(((uint64_t)pins) + offset);
 	}
 
+	template<typename T>
+	T GetValue(void *pins) {
+		return *((T*)(((uint64_t)pins) + offset));
+	}
+
 	void* GetPointerValue(void* pins) {
 		return (void*)(*(uint64_t*)(((uint64_t)pins) + offset));
 	}

@@ -2,7 +2,7 @@
 
 #include "refrection.h"
 #include "TestClass.h"
-//#include "TestStruct.h"
+#include "TestStruct.h"
 
 using namespace std;
 
@@ -29,14 +29,25 @@ int main() {
 	//PFunctionInfo pprintTestStructXFunctionInfo = GlobalRefrector::GetRefrector().function_map["PrintTestStructX"];
 	//pprintTestStructXFunctionInfo->InvokeWithoutRes<TestStruct*>((TestStruct*)testStruct);
 
+	PFunctionInfo sy = GlobalRefrector::GetRefrector().function_map["SetY"];
+	sy->InvokeWithoutRes<void*, double>(testNestStruct, 20.0f);
+
 	PFunctionInfo func = GlobalRefrector::GetRefrector().function_map["InitializeNestStructTS"];
 	func->InvokeWithoutRes<void*, int>(testNestStruct, 10);
 
 	PFieldInfo ptestStructFieldInfo = pnestStructType->GetFieldInfo("_ts");
-	void* testStruct = ptestStructFieldInfo->GetPointerValue(testNestStruct);
+	PFieldInfo py = pnestStructType->GetFieldInfo("y");
+	
+	//void* testStruct = ptestStructFieldInfo->GetPointerValue(testNestStruct);
 
 	PFunctionInfo pprintTestStructXFunctionInfo = GlobalRefrector::GetRefrector().function_map["PrintTestStructX"];
-	pprintTestStructXFunctionInfo->InvokeWithoutRes<void*>(testStruct);
+	//pprintTestStructXFunctionInfo->InvokeWithoutRes<void*>(testStruct);
+
+	TestStruct* ts = ptestStructFieldInfo->GetValue<TestStruct*>(testNestStruct);
+	pprintTestStructXFunctionInfo->InvokeWithoutRes<TestStruct*>(ts);
+
+	double y = py->GetValue<double>(testNestStruct);
+
 
 
 	return 0;
