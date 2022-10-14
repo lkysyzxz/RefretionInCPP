@@ -27,6 +27,9 @@
     <ClCompile Include="DerivedTestScript.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TestStruct.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="refrection.h">
@@ -36,6 +39,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="DerivedTestScript.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TestStruct.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

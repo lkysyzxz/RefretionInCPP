@@ -143,11 +143,13 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="refrection.cpp" />
     <ClCompile Include="TestClass.cpp" />
+    <ClCompile Include="TestStruct.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DerivedTestScript.h" />
     <ClInclude Include="refrection.h" />
     <ClInclude Include="TestClass.h" />
+    <ClInclude Include="TestStruct.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
