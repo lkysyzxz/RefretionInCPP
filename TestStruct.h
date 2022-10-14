@@ -15,4 +15,6 @@ void InitializeNestStructTS(NestStruct *self, int x);
 
 void SetY(NestStruct *self, double y);
 
+double GetY(NestStruct *self);
+
 void PrintTestStructX(TestStruct* self);

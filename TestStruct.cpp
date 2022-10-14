@@ -19,6 +19,11 @@ void SetY(NestStruct *self, double y) {
 	self->y = y;
 }
 
+REGISTER_FUNCTION_WITH_RES(double, PGetY, GetY, NestStruct*);
+double GetY(NestStruct *self) {
+	return self->y;
+}
+
 REGISTER_FUNCTION_WITHOUT_RES(PPrintTestStructX, PrintTestStructX, TestStruct*)
 void PrintTestStructX(TestStruct* self) {
 	printf("%d", self->x);

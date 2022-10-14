@@ -435,9 +435,9 @@ public:
 	}
 
 	template<typename ResType, typename ...Params>
-	ResType InvokeWithRes(void* pins, Params...params) {
+	ResType InvokeWithRes(Params...params) {
 		ResType res;
-		InvokeWithResDerive(&res, pins, params...);
+		InvokeWithResDerive(&res, params...);
 		return res;
 	}
 
@@ -478,9 +478,9 @@ public:
 		func = fc;
 	}
 
-	virtual void InvokeWithRes(void* res_address, void* pins, ...) {
+	virtual void InvokeWithResDerive(void* res_address, ...) {
 		va_list ap;
-		va_start(ap, pins);
+		va_start(ap, res_address);
 		JumpToEnd(ap);
 		*(ResType*)res_address = (*func)(GetReverse<Params>(ap)...);
 		va_end(ap);

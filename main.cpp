@@ -43,10 +43,14 @@ int main() {
 	PFunctionInfo pprintTestStructXFunctionInfo = GlobalRefrector::GetRefrector().function_map["PrintTestStructX"];
 	//pprintTestStructXFunctionInfo->InvokeWithoutRes<void*>(testStruct);
 
+	PFunctionInfo pgetY = GlobalRefrector::GetRefrector().function_map["GetY"];
+
 	TestStruct* ts = ptestStructFieldInfo->GetValue<TestStruct*>(testNestStruct);
 	pprintTestStructXFunctionInfo->InvokeWithoutRes<TestStruct*>(ts);
 
-	double y = py->GetValue<double>(testNestStruct);
+	//double y = py->GetValue<double>(testNestStruct);
+
+	double y = pgetY->InvokeWithRes<double, void*>(testNestStruct);
 
 
 
