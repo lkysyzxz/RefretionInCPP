@@ -7,6 +7,41 @@
 #include <functional>
 #include <stdarg.h>
 
+template<typename Arg>
+Arg DecodeArgReverse(va_list& ap) {
+	ap -= _INTSIZEOF(Arg);
+	Arg res = *((Arg*)ap);
+	return res;
+}
+
+template<>
+float DecodeArgReverse<float>(va_list& ap);
+
+template<>
+short DecodeArgReverse<short>(va_list& ap);
+
+template<typename Arg>
+int CaculateSum(int &sum) {
+	sum += _INTSIZEOF(Arg);
+	return sum;
+}
+
+template<>
+int CaculateSum<float>(int& sum);
+
+template<>
+int CaculateSum<short>(int& sum);
+
+void EmptyFunc(...);
+
+template<typename ...Params>
+void JumpToEnd(va_list& ap) {
+	int sum = 0;
+	EmptyFunc(CaculateSum<Params>(sum)...);
+	ap += sum;
+}
+
+
 typedef void* (*PInstanceGenerator)();
 typedef void* (*PAbstractInstanceGenerator)(const std::string& deriedClassName);
 
@@ -37,6 +72,12 @@ typedef FieldInfo* PFieldInfo;
 class MethodInfo;
 
 typedef MethodInfo* PMethodInfo;
+
+template<typename ResType, typename ClassType, typename MethodType, typename ...Params>
+class DerivedMethodWithRes;
+
+template<typename ClassType, typename MethodType, typename ...Params>
+class DerivedMethodWithoutRes;
 
 class FunctionInfo;
 
@@ -297,21 +338,6 @@ public:
 
 template<typename ResType, typename ClassType, typename MethodType, typename ...Params>
 class DerivedMethodWithRes :public MethodInfo {
-private:
-	void EmptyFunc(...) {
-
-	}
-	void JumpToEnd(va_list& ap) {
-		EmptyFunc(va_arg(ap, Params)...);
-	}
-
-	template<typename T>
-	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ����Ҫ�����������������ap�м���ȥ��
-		T x = *(T*)(ap - _INTSIZEOF(T));
-		ap -= _INTSIZEOF(T);
-		return x;
-	}
 public:
 	MethodType func;
 	DerivedMethodWithRes(const std::string& cn, const std::string& mn, MethodType fc) :MethodInfo(cn, mn) {
@@ -321,29 +347,14 @@ public:
 	virtual void InvokeWithResDerive(void* res_address, void* pins, ...) {
 		va_list ap;
 		va_start(ap, pins);
-		JumpToEnd(ap);
-		*(ResType*)res_address = ((ClassType*)pins->*func)(GetReverse<Params>(ap)...);
+		JumpToEnd<Params...>(ap);
+		*(ResType*)res_address = ((ClassType*)pins->*func)(DecodeArgReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };
 
 template<typename ResType, typename MethodType, typename ...Params>
 class StaticMethodWithRes :public MethodInfo {
-private:
-	void EmptyFunc(...) {
-
-	}
-	void JumpToEnd(va_list& ap) {
-		EmptyFunc(va_arg(ap, Params)...);
-	}
-
-	template<typename T>
-	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ����Ҫ�����������������ap�м���ȥ��
-		T x = *(T*)(ap - _INTSIZEOF(T));
-		ap -= _INTSIZEOF(T);
-		return x;
-	}
 public:
 	MethodType func;
 	StaticMethodWithRes(const std::string& cn, const std::string& mn, MethodType fc) :MethodInfo(cn, mn, true) {
@@ -353,8 +364,8 @@ public:
 	virtual void InvokeStaticMethodWithResDerive(void* res_address, void* pins, ...) {
 		va_list ap;
 		va_start(ap, pins);
-		JumpToEnd(ap);
-		*(ResType*)res_address = (*func)(GetReverse<Params>(ap)...);
+		JumpToEnd<Params>(ap);
+		*(ResType*)res_address = (*func)(DecodeArgReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };
@@ -362,21 +373,6 @@ public:
 
 template<typename ClassType, typename MethodType, typename ...Params>
 class DerivedMethodWithoutRes :public MethodInfo {
-private:
-	void EmptyFunc(...) {
-
-	}
-	void JumpToEnd(va_list& ap) {
-		EmptyFunc(va_arg(ap, Params)...);
-	}
-
-	template<typename T>
-	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ����Ҫ�����������������ap�м���ȥ��
-		T x = *(T*)(ap - _INTSIZEOF(T));
-		ap -= _INTSIZEOF(T);
-		return x;
-	}
 public:
 	MethodType func;
 	DerivedMethodWithoutRes(const std::string& cn, const std::string& mn, MethodType fc) :MethodInfo(cn, mn) {
@@ -386,29 +382,14 @@ public:
 	virtual void InvokeWithoutResDerive(void* pins, ...) {
 		va_list ap;
 		va_start(ap, pins);
-		JumpToEnd(ap);
-		((ClassType*)pins->*func)(GetReverse<Params>(ap)...);
+		JumpToEnd<Params...>(ap);
+		((ClassType*)pins->*func)(DecodeArgReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };
 
 template<typename MethodType, typename ...Params>
 class StaticMethodWithoutRes :public MethodInfo {
-private:
-	void EmptyFunc(...) {
-
-	}
-	void JumpToEnd(va_list& ap) {
-		EmptyFunc(va_arg(ap, Params)...);
-	}
-
-	template<typename T>
-	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ����Ҫ�����������������ap�м���ȥ��
-		T x = *(T*)(ap - _INTSIZEOF(T));
-		ap -= _INTSIZEOF(T);
-		return x;
-	}
 public:
 	MethodType func;
 	StaticMethodWithoutRes(const std::string& cn, const std::string& mn, MethodType fc) :MethodInfo(cn, mn, true) {
@@ -418,8 +399,8 @@ public:
 	virtual void InvokeStaticMethodWithoutResDerive(void* placeholder, ...) {
 		va_list ap;
 		va_start(ap, placeholder);
-		JumpToEnd(ap);
-		(*func)(GetReverse<Params>(ap)...);
+		JumpToEnd<Params...>(ap);
+		(*func)(DecodeArgReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };
@@ -457,21 +438,6 @@ public:
 
 template<typename ResType, typename FunctionType, typename ...Params>
 class FunctionWithRes :public FunctionInfo {
-private:
-	void EmptyFunc(...) {
-
-	}
-	void JumpToEnd(va_list& ap) {
-		EmptyFunc(va_arg(ap, Params)...);
-	}
-
-	template<typename T>
-	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ����Ҫ�����������������ap�м���ȥ��
-		T x = *(T*)(ap - _INTSIZEOF(T));
-		ap -= _INTSIZEOF(T);
-		return x;
-	}
 public:
 	FunctionType func;
 	FunctionWithRes(const std::string& fn, FunctionType fc) :FunctionInfo(fn) {
@@ -481,29 +447,14 @@ public:
 	virtual void InvokeWithResDerive(void* res_address, ...) {
 		va_list ap;
 		va_start(ap, res_address);
-		JumpToEnd(ap);
-		*(ResType*)res_address = (*func)(GetReverse<Params>(ap)...);
+		JumpToEnd<Params...>(ap);
+		*(ResType*)res_address = (*func)(DecodeArgReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };
 
 template<typename FunctionType, typename ...Params>
 class FunctionWithoutRes :public FunctionInfo {
-private:
-	void EmptyFunc(...) {
-
-	}
-	void JumpToEnd(va_list& ap) {
-		EmptyFunc(va_arg(ap, Params)...);
-	}
-
-	template<typename T>
-	T GetReverse(va_list& ap) {
-		//va_arg -> (*(t*)((ap += _INTSIZEOF(t)) - _INTSIZEOF(t))) ����Ҫ�����������������ap�м���ȥ��
-		T x = *(T*)(ap - _INTSIZEOF(T));
-		ap -= _INTSIZEOF(T);
-		return x;
-	}
 public:
 	FunctionType func;
 	FunctionWithoutRes(const std::string& fn, FunctionType fc) :FunctionInfo(fn) {
@@ -513,8 +464,8 @@ public:
 	virtual void InvokeWithoutResDerive(void* placeholder, ...) {
 		va_list ap;
 		va_start(ap, placeholder);
-		JumpToEnd(ap);
-		(*func)(GetReverse<Params>(ap)...);
+		JumpToEnd<Params...>(ap);
+		(*func)(DecodeArgReverse<Params>(ap)...);
 		va_end(ap);
 	}
 };

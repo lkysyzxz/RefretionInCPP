@@ -77,4 +77,3 @@ public:
 	DEFINED_METHOD_POINTER(void, TestScript, PPureVirtualMethod)
 	virtual void PureVirtualMethod() = 0;
 };
-

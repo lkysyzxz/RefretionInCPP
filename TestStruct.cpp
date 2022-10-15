@@ -14,8 +14,8 @@ void InitializeNestStructTS(NestStruct* self, int x) {
 	self->_ts->x = x;
 }
 
-REGISTER_FUNCTION_WITHOUT_RES(PSetY, SetY, NestStruct*, double);
-void SetY(NestStruct *self, double y) {
+REGISTER_FUNCTION_WITHOUT_RES(PSetY, SetY, NestStruct*, float);
+void SetY(NestStruct *self, float y) {
 	self->y = y;
 }
 
@@ -27,5 +27,10 @@ double GetY(NestStruct *self) {
 REGISTER_FUNCTION_WITHOUT_RES(PPrintTestStructX, PrintTestStructX, TestStruct*)
 void PrintTestStructX(TestStruct* self) {
 	printf("%d", self->x);
+}
+
+REGISTER_FUNCTION_WITHOUT_RES(PMoreParams, MoreParams, short, short, int, NestStruct*, double, float, float)
+void MoreParams(short x, short y, int z, NestStruct* self, double dx, float fy, float fz) {
+	return;
 }
 

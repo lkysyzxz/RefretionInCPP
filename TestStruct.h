@@ -13,8 +13,10 @@ struct NestStruct {
 
 void InitializeNestStructTS(NestStruct *self, int x);
 
-void SetY(NestStruct *self, double y);
+void SetY(NestStruct *self, float y);
 
 double GetY(NestStruct *self);
 
 void PrintTestStructX(TestStruct* self);
+
+void MoreParams(short x, short y, int z, NestStruct* self, double dx, float fy, float fz);
