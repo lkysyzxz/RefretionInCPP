@@ -529,8 +529,6 @@ public:
 		}\
 	protected:\
 
-#define	DEFINED_METHOD_POINTER(res_type, class_type, define_name, ...) typedef res_type(class_type::* define_name)(__VA_ARGS__);
-
 #define REGISTER_CLASS(class_type,class_name,parent_count,...)\
 	Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
 
