@@ -475,20 +475,20 @@ public:
 
 #define DEFINE_PRIVATE_MEMBER(classtype, member)\
 	public:\
-	static uint64_t GetMemberOffset_##member(){\
+	static uint64_t GetMemberOffset##_##member(){\
 		return (uint64_t)(&(((classtype*)0)->member));\
 	}\
 	private:\
 
 #define DEFINE_PROTECTED_MEMBER(classtype, member)\
 	public:\
-	static uint64_t GetMemberOffset_##member(){\
+	static uint64_t GetMemberOffset##_##member(){\
 		return (uint64_t)(&(((classtype*)0)->member));\
 	}\
 	protected:\
 
 #define NON_PUBLIC_MEMBER_OFFSET(classtype, member)\
-	classtype::GetMemberOffset_##member()
+	classtype::GetMemberOffset##_##member()
 
 #define SET_AS_REFRECTABLE_CLASS(class_type)\
 	static void* CreateInstance() {\
@@ -516,7 +516,7 @@ public:
 #define	REFRECT_PRIVATE_METHOD(res_type, class_type, method_name,define_name, ...) \
 	public:\
 		typedef res_type(class_type::* define_name)(__VA_ARGS__);\
-		static define_name GetMethodPointer_##method_name(){\
+		static define_name GetMethodPointer##_##method_name(){\
 			return &class_type::method_name;\
 		}\
 	private:\
@@ -524,22 +524,22 @@ public:
 #define	REFRECT_PROTECTED_METHOD(res_type, class_type, method_name,define_name, ...) \
 	public:\
 		typedef res_type(class_type::* define_name)(__VA_ARGS__);\
-		static define_name GetMethodPointer_##method_name(){\
+		static define_name GetMethodPointer##_##method_name(){\
 			return &class_type::method_name;\
 		}\
 	protected:\
 
 #define REGISTER_CLASS(class_type,class_name,parent_count,...)\
-	Type g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
+	Type g_type##_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
 
 #define REGISTER_ABSTRACT_CLASS(class_type, class_name, parent_count,...)\
-	AbstractType g_type_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
+	AbstractType g_type##_##class_name(#class_type,#class_name, class_type::CreateInstance,parent_count, ##__VA_ARGS__);
 
 #define REGISTER_FIELD(class_type,class_name, field_type, field_name)\
-	FieldInfo g_field_##class_name_##field_type_##field_name(#class_name, #field_type, #field_name, MEMBER_OFFSET(class_type, field_name));
+	FieldInfo g_field##_##class_name##_##field_name(#class_name, #field_type, #field_name, MEMBER_OFFSET(class_type, field_name));
 
 #define REGISTER_NON_PUBLIC_FIELD(class_type,class_name, field_type, field_name)\
-	FieldInfo g_field_##class_name_##field_type_##field_name(#class_name, #field_type, #field_name, NON_PUBLIC_MEMBER_OFFSET(class_type,field_name));
+	FieldInfo g_field##_##class_name##_##field_name(#class_name, #field_type, #field_name, NON_PUBLIC_MEMBER_OFFSET(class_type,field_name));
 
 #define REGISTER_METHOD_WITHOUT_RES(class_type, class_name, method_pointer, method_name, ...)\
 	DerivedMethodWithoutRes<class_type,class_type::method_pointer,##__VA_ARGS__> g_method_##class_type_##class_name_##method_pointer(#class_name,#method_name, &class_type::method_name);
@@ -587,7 +587,7 @@ public:
 
 #define REGISTER_STRUCT(struct_name)\
 	SET_AS_REFRECTABLE_STRUCT(struct_name)\
-	StructType g_type_##struct_name(#struct_name, CreateInstance##struct_name);
+	StructType g_type##_##struct_name(#struct_name, CreateInstance##struct_name);
 
 #define REGISTER_FUNCTION_WITH_RES(res_type,function_type, function_name, ...)\
 	DEFINE_FUNCTION_POINTER(res_type, function_type, __VA_ARGS__)\
